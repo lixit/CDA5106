@@ -16,6 +16,11 @@ enum InclusionPolicy {
     EXCLUSIVE,
 };
 
+enum Mode {
+    READ,
+    WRITE
+};
+
 struct CacheBlock {
     int tag = 0;
     // a valid bit to the tag to say whether or not this entry contains a valid address.
@@ -35,8 +40,7 @@ public:
     void fifo_write(int tag);
 
     // if missed, return true, and the address of the block to be write to child
-    bool lru_read(const CacheBlock &block, std::string &viticm_hex);
-    bool lru_write(const CacheBlock &block, std::string &viticm_hex);
+    bool lru_access(const CacheBlock &block, std::string &viticm_hex, Mode mode);
 
     CacheBlock& operator[](int);
 
@@ -49,7 +53,7 @@ private:
     void lru_push(const CacheBlock &block);
     int lru_empty_index();
     int dirty_index();
-    bool lru_hit(const CacheBlock &block, bool make_dirty = false);
+    int lru_hit_index(const CacheBlock &block);
     void set_row_unset_column(int i);
     int all_0_row();
 

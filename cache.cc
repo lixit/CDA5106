@@ -31,7 +31,25 @@ void Cache::set_parent(std::shared_ptr<Cache> parent) {
 }
 
 void Cache::read(const std::string &address_hex) {
-    ++reads_;
+    if (replacement_ == LRU)
+        lru_access(address_hex, READ);
+    else if (replacement_ == FIFO)
+        fifo_access(address_hex, READ);
+}
+
+void Cache::write(const std::string &address_hex) {
+    if (replacement_ == LRU)
+        lru_access(address_hex, WRITE);
+    else if (replacement_ == FIFO)
+        fifo_access(address_hex, WRITE);
+}
+
+void Cache::lru_access(const std::string &address_hex, Mode mode) {
+    if (mode == READ) {
+        ++reads_;
+    } else if (mode == WRITE) {
+        ++writes_;
+    }
     // address is 32 bits, 8 hex digits, 4 bits per hex digit
     // block_size_ bits is log2(block_size_). for log2(32) = 5
     // set_count_ bits is log2(set_count_). for log2(8) = 3
@@ -64,9 +82,13 @@ void Cache::read(const std::string &address_hex) {
             // 2.2.2 if no dirty slot, replace one
                 // same as 2.2.1
     std::string victim_address;
-    bool hitted = sets_[index].lru_read(block, victim_address);
+    bool hitted = sets_[index].lru_access(block, victim_address, mode);
     if (!hitted) {
-        ++read_misses_;
+        if (mode == READ) {
+            ++read_misses_;
+        } else if (mode == WRITE) {
+            ++write_misses_;
+        }
         // CACHE issues a write request (only if there is a victim block and it is dirty)
         if (victim_address != "") {
             ++writebacks_;
@@ -79,9 +101,12 @@ void Cache::read(const std::string &address_hex) {
             child_->read(address_hex);
         }
     }
+}
 
+void Cache::fifo_access(const std::string &address_hex, Mode mode) {
 
 }
+
 /*
 The only situa:on where CACHE must interact with the next level
 below it (either another CACHE or main memory) is when the read or write request misses in
@@ -109,45 +134,7 @@ to the next level in the memory hierarchy.
             according to replacement policy, replace one
              
         read to the next level.
-        
-
-
 */
-void Cache::write(const std::string &address_hex) {
-    ++writes_;
-    int address_bits = address_hex.size() * 4;
-    int offset_bits = log2(block_size_);
-    int index_bits = log2(set_count_);
-    int tag_bits = address_bits - offset_bits - index_bits;
-
-    int address = std::stoi(address_hex, nullptr, 16);
-
-    // for simulator, don't care about block offset
-    int index = (address >> offset_bits) & ((1 << index_bits) - 1);
-    int tag = (address >> (offset_bits + index_bits)) & ((1 << tag_bits) - 1);
-
-    index = index % set_count_;
-
-    std::string victim_address;
-    // valid and not dirty
-    CacheBlock block{tag, true, false, address_hex};
-    bool hitted = sets_[index].lru_write(block, victim_address);
-    // if not hit
-    if (!hitted) {
-        ++write_misses_;
-        // CACHE issues a write request (only if there is a victim block and it is dirty)
-        if (victim_address != "") {
-            ++writebacks_;
-            if (child_ != nullptr) {
-                child_->write(victim_address);
-            }
-        }
-        // followed by a read request
-        if (child_ != nullptr) {
-            child_->read(address_hex);
-        }
-    }
-}
 
 void Cache::print_cache(const std::string &cache_name) {
     std::cout << "===== " << cache_name << " =====" << std::endl;

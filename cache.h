@@ -24,6 +24,10 @@ public:
     void print_summary(const std::string &cache_name, char start_char);
 
 private:
+    void lru_access(const std::string &address_hex, Mode mode);
+    void fifo_access(const std::string &address_hex, Mode mode);
+
+private:
     int size_;
     int block_size_;
     int associativity_;

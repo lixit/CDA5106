@@ -38,18 +38,33 @@ CacheBlock Set::fifo_pop() {
     return block;
 }
 
+// what read different from write?
+// only diff in write need update dirty bit.
+
 // only viticm and dirty need to write to child.
 // return hit, if hit return true, if miss return false
-bool Set::lru_read(const CacheBlock &block, std::string &viticm_hex) {
-    // lru_hit always update lru matrix
-    if (lru_hit(block)) {  // hit
-        // hit
+// When update lru matrix? always
+
+
+// only viticm and dirty need to write to child.
+// when should we make dirty? only hit and write
+// return hit, if hit return true, if miss return false
+bool Set::lru_access(const CacheBlock &block, std::string &viticm_hex, Mode mode) {
+    if (-1 != lru_hit_index(block)) {  // hit
+        int hit_index = lru_hit_index(block);
+        set_row_unset_column(hit_index);
+        if (mode == WRITE) {
+            blocks_[hit_index].dirty = true;
+        }
         return true;
     } else if (-1 != lru_empty_index()) { // not full, push
+        // lru_push always update lru matrix
         lru_push(block);
 
     } else if (-1 != dirty_index()) { // have dirty index
         int ditry_index = dirty_index();
+        set_row_unset_column(ditry_index);
+
         // write to child
         viticm_hex = blocks_[ditry_index].address_hex;
         // replace
@@ -57,56 +72,22 @@ bool Set::lru_read(const CacheBlock &block, std::string &viticm_hex) {
 
     } else { // full, no dirty index
         int victim_index = all_0_row();
-        
-        // replace
+        set_row_unset_column(victim_index);
         blocks_[victim_index] = block;
     }
 
     return false;
-}
 
-// only viticm and dirty need to write to child.
-// when should we make dirty? only hit and write
-// return hit, if hit return true, if miss return false
-bool Set::lru_write(const CacheBlock &block, std::string &viticm_hex) {
-    if (lru_hit(block, true)) {  // hit
-        // hit and make dirty
-        return true;
-    } else if (-1 != lru_empty_index()) { // not full, push
-        lru_push(block);
-        // non inclusive, don't do anythin
-        // if inclusive, write to child
-    } else if (-1 != dirty_index()) { // have dirty index
-        int ditry_index = dirty_index();
-        CacheBlock victim = blocks_[ditry_index];
-        // must write to child
-        viticm_hex = victim.address_hex;
-        // replace
-        blocks_[ditry_index] = block;
-        // if inclusive, write to child
-
-    } else { // full, no dirty index
-        int victim_index = all_0_row();
-        // if non-inclusive, don't do anything
-        blocks_[victim_index] = block;
-    }
-
-    return false;
 }
 
 // if hit, update the lru matrix
-bool Set::lru_hit(const CacheBlock &block, bool make_dirty) {
+int Set::lru_hit_index(const CacheBlock &block) {
     for (int i = 0; i < associativity_; i++) {
         if (blocks_[i].valid && blocks_[i].tag == block.tag) {
-            // set the row, unset the column
-            set_row_unset_column(i);
-            if (make_dirty) {
-                blocks_[i].dirty = true;
-            }
-            return true;
+            return i;
         }
     }
-    return false;
+    return -1;
 }
 
 void Set::lru_push(const CacheBlock &block) {
