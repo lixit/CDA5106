@@ -1,6 +1,7 @@
 #include "cache.h"
 #include <iostream>
 #include <format>
+#include <string>
 #include <cmath>
 
 Cache::Cache(int size, int block_size, int associativity, ReplacementPolicy replacement, InclusionPolicy inclusion)
@@ -63,11 +64,12 @@ void Cache::read(const std::string &address_hex) {
             // 2.2.2 if no dirty slot, replace one
                 // same as 2.2.1
     std::string victim_address;
-    bool missed = sets_[index].lru_read(block, victim_address);
-    if (missed) {
+    bool hitted = sets_[index].lru_read(block, victim_address);
+    if (!hitted) {
         ++read_misses_;
         // CACHE issues a write request (only if there is a victim block and it is dirty)
         if (victim_address != "") {
+            ++writebacks_;
             if (child_ != nullptr) {
                 child_->write(victim_address);
             }
@@ -129,11 +131,13 @@ void Cache::write(const std::string &address_hex) {
     std::string victim_address;
     // valid and not dirty
     CacheBlock block{tag, true, false, address_hex};
-    bool missed = sets_[index].lru_write(block, victim_address);
-    if (missed) {
+    bool hitted = sets_[index].lru_write(block, victim_address);
+    // if not hit
+    if (!hitted) {
         ++write_misses_;
         // CACHE issues a write request (only if there is a victim block and it is dirty)
         if (victim_address != "") {
+            ++writebacks_;
             if (child_ != nullptr) {
                 child_->write(victim_address);
             }
@@ -145,26 +149,29 @@ void Cache::write(const std::string &address_hex) {
     }
 }
 
-void Cache::print_cache(std::string cache_name) {
+void Cache::print_cache(const std::string &cache_name) {
     std::cout << "===== " << cache_name << " =====" << std::endl;
     for (int i = 0; i < set_count_; i++) {
-        std::cout <<  std::format("{:<8}", "set") << std::format("{:<8}", i, ":");
+        std::cout <<  std::format("{:<8}", "set") << std::format("{:<8}", std::to_string(i) + ":");
         for (int j = 0; j < associativity_; j++) {
+            // show tag as hex
             std::string s = std::format("{:x}", sets_[i][j].tag);
-            std::cout << std::format("{:<10}", s) <<  ((sets_[i][j].dirty) ? "D" : ""); //
+            // append "D" if dirty
+            s += ((sets_[i][j].dirty) ? " D" : "");
+            std::cout << std::format("{:<10}", s); //
         }
         std::cout << std::endl;
     }
-    std::cout << "====================" << std::endl;
-
 }
 
-void Cache::print_summary(std::string cache_name) {
-    std::cout << std::format("{:<27}", "number of " + cache_name + " reads:") << reads_ << std::endl;
-    std::cout << std::format("{:<27}", "number of ", cache_name, " read misses:") << read_misses_ << std::endl;
-    std::cout << std::format("{:<27}", "number of ", cache_name, " writes:") << writes_ << std::endl;
-    std::cout << std::format("{:<27}", "number of ", cache_name, " write misses:") << write_misses_ << std::endl;
-    std::cout << std::format("{:<27}", "total miss rate:") << std::format("{:.6f}", (read_misses_ + write_misses_) / (double)(reads_ + writes_)) << std::endl;
+void Cache::print_summary(const std::string &cache_name, char start_char) {
+
+    std::cout << start_char << ". " << std::format("{:<27}", "number of " + cache_name + " reads:") << reads_ << std::endl;
+    std::cout << char(start_char + 1) << ". " << std::format("{:<27}", "number of " + cache_name + " read misses:") << read_misses_ << std::endl;
+    std::cout << char(start_char + 2) << ". " << std::format("{:<27}", "number of " + cache_name + " writes:") << writes_ << std::endl;
+    std::cout << char(start_char + 3) << ". " << std::format("{:<27}", "number of " + cache_name + " write misses:") << write_misses_ << std::endl;
+    std::cout << char(start_char + 4) << ". " << std::format("{:<27}", cache_name + " miss rate:") << std::format("{:.6f}", (read_misses_ + write_misses_) / (double)(reads_ + writes_)) << std::endl;
+    std::cout << char(start_char + 5) << ". " << std::format("{:<27}", "number of " + cache_name + " writebacks:") << writebacks_ << std::endl;
 }
 
 

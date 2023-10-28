@@ -38,7 +38,8 @@ CacheBlock Set::fifo_pop() {
     return block;
 }
 
-// only viticm and dirty need to write to child. 
+// only viticm and dirty need to write to child.
+// return hit, if hit return true, if miss return false
 bool Set::lru_read(const CacheBlock &block, std::string &viticm_hex) {
     // lru_hit always update lru matrix
     if (lru_hit(block)) {  // hit
@@ -65,6 +66,8 @@ bool Set::lru_read(const CacheBlock &block, std::string &viticm_hex) {
 }
 
 // only viticm and dirty need to write to child.
+// when should we make dirty? only hit and write
+// return hit, if hit return true, if miss return false
 bool Set::lru_write(const CacheBlock &block, std::string &viticm_hex) {
     if (lru_hit(block, true)) {  // hit
         // hit and make dirty
@@ -109,8 +112,8 @@ bool Set::lru_hit(const CacheBlock &block, bool make_dirty) {
 void Set::lru_push(const CacheBlock &block) {
     int empty_index = lru_empty_index();
     blocks_[empty_index] = block;
-    // new block is dirty
-    blocks_[empty_index].dirty = true;
+    // // new block is dirty
+    // blocks_[empty_index].dirty = true;
     set_row_unset_column(empty_index);
 }
 

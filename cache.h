@@ -20,8 +20,8 @@ public:
     void set_parent(std::shared_ptr<Cache> parent);
     std::shared_ptr<Cache> get_child();
 
-    void print_cache(std::string cache_name);
-    void print_summary(std::string cache_name);
+    void print_cache(const std::string &cache_name);
+    void print_summary(const std::string &cache_name, char start_char);
 
 private:
     int size_;
@@ -50,6 +50,7 @@ private:
     int read_misses_ = 0;
     int writes_ = 0;
     int write_misses_ = 0;
+    int writebacks_ = 0;
 };
 
 

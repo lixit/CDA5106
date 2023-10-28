@@ -56,19 +56,29 @@ int main(int argc, char* argv[]) {
             exit(1);
         }
         std::string replacement_policy(argv[optind + 5]);
-        std::string inclusion_property(argv[optind + 6]);
+        std::string inclusion_policy(argv[optind + 6]);
         std::string trace_file(argv[optind + 7]);
 
         std::cout << "===== Simulator configuration =====" << std::endl;
-        std::cout << std::format("{:<23}", "BLOCKSIZE = ") << block_size << std::endl;
-        std::cout << std::format("{:<23}", "L1_SIZE = ") << l1_size << std::endl;
-        std::cout << std::format("{:<23}", "L1_ASSOC = ") << l1_assoc << std::endl;
-        std::cout << std::format("{:<23}", "L2_SIZE = ") << l2_size << std::endl;
-        std::cout << std::format("{:<23}", "L2_ASSOC = ") << l2_assoc << std::endl;
-        std::cout << std::format("{:<23}", "REPLACEMENT_POLICY = ") << replacement_policy << std::endl;
-        std::cout << std::format("{:<23}", "INCLUSION_PROPERTY = ") << inclusion_property << std::endl;
-        std::cout << std::format("{:<23}", "trace_file = ") << trace_file << std::endl;
-        std::cout << "===================================" << std::endl;
+        std::cout << std::format("{:<23}", "BLOCKSIZE:") << block_size << std::endl;
+        std::cout << std::format("{:<23}", "L1_SIZE:") << l1_size << std::endl;
+        std::cout << std::format("{:<23}", "L1_ASSOC:") << l1_assoc << std::endl;
+        std::cout << std::format("{:<23}", "L2_SIZE:") << l2_size << std::endl;
+        std::cout << std::format("{:<23}", "L2_ASSOC:") << l2_assoc << std::endl;
+        std::cout << std::format("{:<23}", "REPLACEMENT_POLICY:") << (replacement_policy == "0" ? "LRU" : "FIFO") << std::endl;
+        std::string inclusion_print;
+        if (inclusion_policy == "0") {
+            inclusion_print = "non-inclusive";
+        } else if (inclusion_policy == "1") {
+            inclusion_print = "inclusive";
+        } else if (inclusion_policy == "2") {
+            inclusion_print = "exclusive";
+        } else {
+            std::cerr << "Invalid inclusion policy!" << std::endl;
+            exit(1);
+        }
+        std::cout << std::format("{:<23}", "INCLUSION_PROPERTY:") << inclusion_print << std::endl;
+        std::cout << std::format("{:<23}", "trace_file:") << trace_file << std::endl;
 
         ReplacementPolicy replacement;
         if (replacement_policy == "0") {
@@ -80,11 +90,11 @@ int main(int argc, char* argv[]) {
             exit(1);
         }
         InclusionPolicy inclusion;
-        if (inclusion_property == "0") {
+        if (inclusion_policy == "0") {
             inclusion = NON_INCLUSIVE;
-        } else if (inclusion_property == "1") {
+        } else if (inclusion_policy == "1") {
             inclusion = INCLUSIVE;
-        } else if (inclusion_property == "2") {
+        } else if (inclusion_policy == "2") {
             inclusion = EXCLUSIVE;
         } else {
             std::cerr << "Invalid inclusion policy!" << std::endl;
@@ -126,7 +136,9 @@ int main(int argc, char* argv[]) {
         if (l2_size != 0) {
             l1.get_child()->print_cache("L2 contents");
         }
-        l1.print_summary("L1");
+
+        std::cout << "===== Simulation results (raw) =====" << std::endl;
+        l1.print_summary("L1", 'a');
     }
 
 }
