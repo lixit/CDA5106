@@ -5,37 +5,26 @@ Set::Set(int associativity, ReplacementPolicy replace, InclusionPolicy inclusion
 
     
     blocks_ = std::vector<CacheBlock>(associativity_, CacheBlock());
-    lru_matrix_ = std::vector<std::vector<bool>>(associativity_, std::vector<bool>(associativity_, false));
+    if (replace_ == LRU) {
+        lru_matrix_ = std::vector<std::vector<bool>>(associativity_, std::vector<bool>(associativity_, false));
+    }
 }
 
-bool Set::fifo_full() {
-    return count_ == associativity_;
-}
 
-bool Set::fifo_hit(const std::string &tag) {
-    for (int i = 0; i < associativity_; i++) {
-        if (blocks_[i].valid && blocks_[i].tag == tag) {
-            return true;
+int Set::fifo_hit_index(const CacheBlock &block) {
+    for (int i = 0; i < associativity_; ++i) {
+        if (block.tag == blocks_[i].tag) {
+            return i;
         }
     }
-    return false;
+    return -1;
 }
 
-void Set::fifo_push(const CacheBlock &block) {
-    if (fifo_full()) {
-        fifo_pop();
+int Set::fifo_empty_index() {
+    if (count_ != associativity_) {
+        return last_;
     }
-    blocks_[last_] = block;
-    last_ = (last_ + 1) % associativity_;
-    count_++;
-}
-
-CacheBlock Set::fifo_pop() {
-    CacheBlock block = blocks_[first_];
-    blocks_[first_] = CacheBlock();
-    first_ = (first_ + 1) % associativity_;
-    count_--;
-    return block;
+    return -1;
 }
 
 // what read different from write?
@@ -103,7 +92,49 @@ bool Set::lru_access(const CacheBlock &block, std::string &viticm_hex, Mode mode
     }
 
     return false;
+}
 
+// return hit, if hit return true, if miss return false
+bool Set::fifo_access(const CacheBlock &block, std::string &viticm_hex, Mode mode, bool &set_dirty, bool &victim_dirty) {
+    // for debug
+    set_dirty = false;
+    victim_dirty = false;
+    int hit_index = fifo_hit_index(block);
+    if (-1 != hit_index) { // hit
+        if (mode == WRITE) {
+            blocks_[hit_index].dirty = true;
+            set_dirty = true;
+        }
+        return true;
+
+    } else if (-1 != fifo_empty_index()) { // miss, not full, push
+        const int empty_index = fifo_empty_index();
+        blocks_[empty_index] = block;
+        if (mode == WRITE) {
+            blocks_[empty_index].dirty = true;
+            set_dirty = true;
+        }
+        // update fifo pointers
+        ++last_;
+        ++count_;
+    } else { // miss, full, fifo
+        int victim_index = first_;
+        int push_index = last_ % associativity_;
+
+        viticm_hex = blocks_[victim_index].address_hex;
+        victim_dirty = blocks_[victim_index].dirty;
+        blocks_[push_index] = block;
+        if (mode == WRITE) {
+            blocks_[push_index].dirty = true;
+            set_dirty = true;
+        }
+
+        // update fifo pointers
+        first_ = (first_ + 1) % associativity_;
+        last_ = (last_ + 1) % associativity_;
+    }
+
+    return false;
 }
 
 // if hit, update the lru matrix

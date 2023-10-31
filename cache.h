@@ -25,8 +25,7 @@ public:
     void print_debug(const std::string &cache_name);
 
 private:
-    void lru_access(const std::string &address_hex, Mode mode);
-    void fifo_access(const std::string &address_hex, Mode mode);
+    void access(const std::string &address_hex, Mode mode);
 
 private:
     int size_;

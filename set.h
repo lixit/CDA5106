@@ -36,8 +36,7 @@ public:
     Set(int associativity, ReplacementPolicy replace, InclusionPolicy inclusion = NON_INCLUSIVE);
     ~Set() = default;
 
-    void fifo_read(int tag);
-    void fifo_write(int tag);
+    bool fifo_access(const CacheBlock &block, std::string &viticm_hex, Mode mode, bool &set_dirty, bool &victim_dirty);
 
     // if missed, return true, and the address of the block to be write to child
     bool lru_access(const CacheBlock &block, std::string &viticm_hex, Mode mode, bool &set_dirty, bool &victim_dirty);
@@ -45,10 +44,8 @@ public:
     CacheBlock& operator[](int);
 
 private:
-    void fifo_push(const CacheBlock &block);
-    CacheBlock fifo_pop();
-    bool fifo_full();
-    bool fifo_hit(const std::string &tag);
+    int fifo_hit_index(const CacheBlock &block);
+    int fifo_empty_index();
 
     int lru_empty_index();
     int dirty_index();

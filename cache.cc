@@ -31,20 +31,14 @@ void Cache::set_parent(std::shared_ptr<Cache> parent) {
 }
 
 void Cache::read(const std::string &address_hex) {
-    if (replacement_ == LRU)
-        lru_access(address_hex, READ);
-    else if (replacement_ == FIFO)
-        fifo_access(address_hex, READ);
+    access(address_hex, READ);
 }
 
 void Cache::write(const std::string &address_hex) {
-    if (replacement_ == LRU)
-        lru_access(address_hex, WRITE);
-    else if (replacement_ == FIFO)
-        fifo_access(address_hex, WRITE);
+    access(address_hex, WRITE);
 }
 
-void Cache::lru_access(const std::string &address_hex, Mode mode) {
+void Cache::access(const std::string &address_hex, Mode mode) {
     ++count_;
     if (mode == READ) {
         ++reads_;
@@ -96,7 +90,15 @@ void Cache::lru_access(const std::string &address_hex, Mode mode) {
             // 2.2.2 if no dirty slot, replace one
                 // same as 2.2.1
     std::string victim_address;
-    bool hitted = sets_[index].lru_access(block, victim_address, mode, current_set_dirty_, current_victim_dirty_);
+    bool hitted;
+    if (replacement_ == LRU) {
+        hitted = sets_[index].lru_access(block, victim_address, mode, current_set_dirty_, current_victim_dirty_);
+    } else if (replacement_ == FIFO) {
+        hitted = sets_[index].fifo_access(block, victim_address, mode, current_set_dirty_, current_victim_dirty_);
+    } else {
+        exit(-1);
+    }
+    
     if (!hitted) {
         current_missed_ = true;
         if (mode == READ) {
@@ -126,10 +128,6 @@ void Cache::lru_access(const std::string &address_hex, Mode mode) {
             child_->read(address_hex);
         }
     }
-
-}
-
-void Cache::fifo_access(const std::string &address_hex, Mode mode) {
 
 }
 
