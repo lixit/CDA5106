@@ -83,6 +83,11 @@ bool Set::lru_access(const CacheBlock &block, std::string &viticm_hex, Mode mode
         // replace
         blocks_[ditry_index] = block;
 
+        if (mode == WRITE) {
+            blocks_[ditry_index].dirty = true;
+            set_dirty = true;
+        }
+
     } else { // full, no dirty index. write viticm and make current dirty
         victim_dirty = false;
         int victim_index = all_0_row();

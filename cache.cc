@@ -113,8 +113,11 @@ void Cache::lru_access(const std::string &address_hex, Mode mode) {
             current_victim_index_ = (victim_int >> offset_bits) & ((1 << index_bits) - 1);
             int victim_effective_address = victim_int >> offset_bits << offset_bits;
             current_victim_effective_address_ = std::format("{:x}", victim_effective_address);
-            ++writebacks_;
-            if (child_ != nullptr) {
+            if (current_victim_dirty_ == true) {
+                ++writebacks_;
+            }
+            
+            if (current_victim_dirty_ && child_ != nullptr) {
                 child_->write(victim_address);
             }
         }
