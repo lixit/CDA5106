@@ -12,7 +12,7 @@ bool Set::fifo_full() {
     return count_ == associativity_;
 }
 
-bool Set::fifo_hit(int tag) {
+bool Set::fifo_hit(const std::string &tag) {
     for (int i = 0; i < associativity_; i++) {
         if (blocks_[i].valid && blocks_[i].tag == tag) {
             return true;
@@ -49,19 +49,32 @@ CacheBlock Set::fifo_pop() {
 // only viticm and dirty need to write to child.
 // when should we make dirty? only hit and write
 // return hit, if hit return true, if miss return false
-bool Set::lru_access(const CacheBlock &block, std::string &viticm_hex, Mode mode) {
+bool Set::lru_access(const CacheBlock &block, std::string &viticm_hex, Mode mode, bool &set_dirty, bool &victim_dirty) {
+    // for debug
+    set_dirty = false;
+    victim_dirty = false;
     if (-1 != lru_hit_index(block)) {  // hit
         int hit_index = lru_hit_index(block);
         set_row_unset_column(hit_index);
         if (mode == WRITE) {
+            blocks_[hit_index] = block; // stupid mistake
             blocks_[hit_index].dirty = true;
+            set_dirty = true;
         }
         return true;
     } else if (-1 != lru_empty_index()) { // not full, push
-        // lru_push always update lru matrix
-        lru_push(block);
+
+        const int empty_index = lru_empty_index();
+        blocks_[empty_index] = block;
+        set_row_unset_column(empty_index);
+
+        if (mode == WRITE) {
+            blocks_[empty_index].dirty = true;
+            set_dirty = true;
+        }
 
     } else if (-1 != dirty_index()) { // have dirty index
+        victim_dirty = true;
         int ditry_index = dirty_index();
         set_row_unset_column(ditry_index);
 
@@ -70,10 +83,17 @@ bool Set::lru_access(const CacheBlock &block, std::string &viticm_hex, Mode mode
         // replace
         blocks_[ditry_index] = block;
 
-    } else { // full, no dirty index
+    } else { // full, no dirty index. write viticm and make current dirty
+        victim_dirty = false;
         int victim_index = all_0_row();
         set_row_unset_column(victim_index);
+        viticm_hex = blocks_[victim_index].address_hex;
         blocks_[victim_index] = block;
+
+        if (mode == WRITE) {
+            blocks_[victim_index].dirty = true;
+            set_dirty = true;
+        }
     }
 
     return false;
@@ -88,14 +108,6 @@ int Set::lru_hit_index(const CacheBlock &block) {
         }
     }
     return -1;
-}
-
-void Set::lru_push(const CacheBlock &block) {
-    int empty_index = lru_empty_index();
-    blocks_[empty_index] = block;
-    // // new block is dirty
-    // blocks_[empty_index].dirty = true;
-    set_row_unset_column(empty_index);
 }
 
 // return empty index

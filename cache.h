@@ -22,6 +22,7 @@ public:
 
     void print_cache(const std::string &cache_name);
     void print_summary(const std::string &cache_name, char start_char);
+    void print_debug(const std::string &cache_name);
 
 private:
     void lru_access(const std::string &address_hex, Mode mode);
@@ -49,6 +50,20 @@ private:
     // child and parent
     std::shared_ptr<Cache> child_;
     std::shared_ptr<Cache> parent_;
+
+    // for debug output
+    int count_ = 0;
+    CacheBlock current_block_;
+    std::string current_effective_address_;
+    int current_set_index_ = 0;
+    Mode current_mode_;
+    std::string current_victim_;
+    bool current_set_dirty_ = false;
+    bool current_missed_ = false;
+    bool current_victim_dirty_ = false;
+    std::string current_victim_tag_;
+    int current_victim_index_ = 0;
+    std::string current_victim_effective_address_;
 
     int reads_ = 0;
     int read_misses_ = 0;

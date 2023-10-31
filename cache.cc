@@ -45,6 +45,7 @@ void Cache::write(const std::string &address_hex) {
 }
 
 void Cache::lru_access(const std::string &address_hex, Mode mode) {
+    ++count_;
     if (mode == READ) {
         ++reads_;
     } else if (mode == WRITE) {
@@ -61,14 +62,27 @@ void Cache::lru_access(const std::string &address_hex, Mode mode) {
 
     int address = std::stoi(address_hex, nullptr, 16);
 
+    // for debug output
+    int effective_address = address >> offset_bits << offset_bits;
+    current_effective_address_ = std::format("{:x}", effective_address);
+
     // for simulator, don't care about block offset
     int index = (address >> offset_bits) & ((1 << index_bits) - 1);
     int tag = (address >> (offset_bits + index_bits)) & ((1 << tag_bits) - 1);
-
+    std::string tag_hex = std::format("{:x}", tag);
     index = index % set_count_;
 
     // valid and not dirty
-    CacheBlock block{tag, true, false, address_hex};
+    CacheBlock block{tag_hex, true, false, address_hex};
+
+    // for debug
+    current_block_ = block;
+    current_mode_ = mode;
+    current_victim_ = "";
+    current_set_dirty_ = false;
+    current_missed_ = false;
+    current_set_index_ = index;
+    current_victim_dirty_ = false;
 
     // 1. if hit, don't do anything
     // 2. if miss
@@ -82,8 +96,9 @@ void Cache::lru_access(const std::string &address_hex, Mode mode) {
             // 2.2.2 if no dirty slot, replace one
                 // same as 2.2.1
     std::string victim_address;
-    bool hitted = sets_[index].lru_access(block, victim_address, mode);
+    bool hitted = sets_[index].lru_access(block, victim_address, mode, current_set_dirty_, current_victim_dirty_);
     if (!hitted) {
+        current_missed_ = true;
         if (mode == READ) {
             ++read_misses_;
         } else if (mode == WRITE) {
@@ -91,6 +106,13 @@ void Cache::lru_access(const std::string &address_hex, Mode mode) {
         }
         // CACHE issues a write request (only if there is a victim block and it is dirty)
         if (victim_address != "") {
+            current_victim_ = victim_address;
+            int victim_int = std::stoi(victim_address, nullptr, 16);
+            int victim_tag = victim_int >> (offset_bits + index_bits);
+            current_victim_tag_ = std::format("{:x}", victim_tag);
+            current_victim_index_ = (victim_int >> offset_bits) & ((1 << index_bits) - 1);
+            int victim_effective_address = victim_int >> offset_bits << offset_bits;
+            current_victim_effective_address_ = std::format("{:x}", victim_effective_address);
             ++writebacks_;
             if (child_ != nullptr) {
                 child_->write(victim_address);
@@ -101,6 +123,8 @@ void Cache::lru_access(const std::string &address_hex, Mode mode) {
             child_->read(address_hex);
         }
     }
+
+    print_debug("L1");
 }
 
 void Cache::fifo_access(const std::string &address_hex, Mode mode) {
@@ -141,11 +165,10 @@ void Cache::print_cache(const std::string &cache_name) {
     for (int i = 0; i < set_count_; i++) {
         std::cout <<  std::format("{:<8}", "set") << std::format("{:<8}", std::to_string(i) + ":");
         for (int j = 0; j < associativity_; j++) {
-            // show tag as hex
-            std::string s = std::format("{:x}", sets_[i][j].tag);
+            std::string tag = sets_[i][j].tag;
             // append "D" if dirty
-            s += ((sets_[i][j].dirty) ? " D" : "");
-            std::cout << std::format("{:<10}", s); //
+            tag += ((sets_[i][j].dirty) ? " D" : "");
+            std::cout << std::format("{:<10}", tag); //
         }
         std::cout << std::endl;
     }
@@ -161,6 +184,43 @@ void Cache::print_summary(const std::string &cache_name, char start_char) {
     std::cout << char(start_char + 5) << ". " << std::format("{:<27}", "number of " + cache_name + " writebacks:") << writebacks_ << std::endl;
 }
 
+
+void Cache::print_debug(const std::string &cache_name) {
+    std::string mode;
+    if (current_mode_ == READ) {
+        mode = "read";
+    } else if (current_mode_ == WRITE) {
+        mode = "write";
+    }
+    std::string tmp1 =  std::to_string(count_) + " : " + mode + " " + current_block_.address_hex;
+    std::cout << "# " << tmp1 << std::endl;
+    tmp1 = cache_name + " " + mode + " : " + current_effective_address_ + 
+        " (tag " + current_block_.tag + ", index " + std::to_string(current_set_index_) + ")";
+    std::cout << tmp1 << std::endl;
+    if (current_missed_) {
+        std::cout << cache_name << " miss" << std::endl;
+        std::string victim = cache_name + " victim: ";
+        if (current_victim_ != "") {
+            victim += current_victim_effective_address_ + " (tag " + current_victim_tag_ + ", index " + std::to_string(current_victim_index_);
+
+            if (current_victim_dirty_) {
+                victim += ", dirty)";
+            } else {
+                victim += ", clean)";
+            }
+        } else {
+            victim += "none";
+        }
+        std::cout << victim << std::endl;
+    } else {
+        std::cout << cache_name << " hit" << std::endl;
+    }
+    std::cout << cache_name << " update LRU" << std::endl;
+    if (current_set_dirty_) {
+        std::cout << cache_name << " set dirty" << std::endl;
+    }
+    std::cout << "----------------------------------------" << std::endl;
+}
 
 std::shared_ptr<Cache> Cache::get_child() {
     return child_;

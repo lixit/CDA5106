@@ -13,7 +13,7 @@ void usage(const std::string& program_name) {
 
 } // namespace
 
-// ./sim_cache 32 8192 4 262144 8 0 0 ../traces/gcc_trace.txt
+// ./sim_cache 16 1024 2 0 0 0 0 ./traces/gcc_trace.txt
 
 int main(int argc, char* argv[]) {
 
