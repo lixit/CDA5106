@@ -127,7 +127,6 @@ void Cache::lru_access(const std::string &address_hex, Mode mode) {
         }
     }
 
-    print_debug("L1");
 }
 
 void Cache::fifo_access(const std::string &address_hex, Mode mode) {

@@ -73,26 +73,27 @@ bool Set::lru_access(const CacheBlock &block, std::string &viticm_hex, Mode mode
             set_dirty = true;
         }
 
-    } else if (-1 != dirty_index()) { // have dirty index
-        victim_dirty = true;
-        int ditry_index = dirty_index();
-        set_row_unset_column(ditry_index);
+    // } else if (-1 != dirty_index()) { // have dirty index
+    //     victim_dirty = true;
+    //     int ditry_index = dirty_index();
+    //     set_row_unset_column(ditry_index);
 
-        // write to child
-        viticm_hex = blocks_[ditry_index].address_hex;
-        // replace
-        blocks_[ditry_index] = block;
+    //     // write to child
+    //     viticm_hex = blocks_[ditry_index].address_hex;
+    //     // replace
+    //     blocks_[ditry_index] = block;
 
-        if (mode == WRITE) {
-            blocks_[ditry_index].dirty = true;
-            set_dirty = true;
-        }
+    //     if (mode == WRITE) {
+    //         blocks_[ditry_index].dirty = true;
+    //         set_dirty = true;
+    //     }
 
-    } else { // full, no dirty index. write viticm and make current dirty
-        victim_dirty = false;
+    } else { // full
+    
         int victim_index = all_0_row();
         set_row_unset_column(victim_index);
         viticm_hex = blocks_[victim_index].address_hex;
+        victim_dirty = blocks_[victim_index].dirty;
         blocks_[victim_index] = block;
 
         if (mode == WRITE) {

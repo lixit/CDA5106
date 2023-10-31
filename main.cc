@@ -65,7 +65,7 @@ int main(int argc, char* argv[]) {
         std::cout << std::format("{:<23}", "L1_ASSOC:") << l1_assoc << std::endl;
         std::cout << std::format("{:<23}", "L2_SIZE:") << l2_size << std::endl;
         std::cout << std::format("{:<23}", "L2_ASSOC:") << l2_assoc << std::endl;
-        std::cout << std::format("{:<23}", "REPLACEMENT_POLICY:") << (replacement_policy == "0" ? "LRU" : "FIFO") << std::endl;
+        std::cout << std::format("{:<23}", "REPLACEMENT POLICY:") << (replacement_policy == "0" ? "LRU" : "FIFO") << std::endl;
         std::string inclusion_print;
         if (inclusion_policy == "0") {
             inclusion_print = "non-inclusive";
@@ -77,7 +77,7 @@ int main(int argc, char* argv[]) {
             std::cerr << "Invalid inclusion policy!" << std::endl;
             exit(1);
         }
-        std::cout << std::format("{:<23}", "INCLUSION_PROPERTY:") << inclusion_print << std::endl;
+        std::cout << std::format("{:<23}", "INCLUSION PROPERTY:") << inclusion_print << std::endl;
         std::cout << std::format("{:<23}", "trace_file:") << trace_file << std::endl;
 
         ReplacementPolicy replacement;
