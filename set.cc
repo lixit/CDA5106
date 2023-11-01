@@ -27,18 +27,8 @@ int Set::fifo_empty_index() {
     return -1;
 }
 
-// what read different from write?
-// only diff in write need update dirty bit.
-
-// only viticm and dirty need to write to child.
-// return hit, if hit return true, if miss return false
-// When update lru matrix? always
-
-
-// only viticm and dirty need to write to child.
-// when should we make dirty? only hit and write
-// return hit, if hit return true, if miss return false
-bool Set::lru_access(const CacheBlock &block, std::string &viticm_hex, Mode mode, bool &set_dirty, bool &victim_dirty) {
+// return `if hit`, if hit return true, if miss return false
+bool Set::lru_access(const CacheBlock &block, std::string &viticm_hex, Mode mode, bool &set_dirty, bool &victim_dirty, int &writeback_memory) {
     // for debug
     set_dirty = false;
     victim_dirty = false;
@@ -54,7 +44,7 @@ bool Set::lru_access(const CacheBlock &block, std::string &viticm_hex, Mode mode
             set_dirty = true;
         } else if (mode == INVALIDATE) {
             if (blocks_[hit_index].dirty) {
-                ; // L1 block to be invalidated is dirty, write to main memory directly.
+                ++writeback_memory; // L1 block to be invalidated is dirty, write to main memory directly.
             }
             blocks_[hit_index].valid = false;
         }
@@ -69,21 +59,6 @@ bool Set::lru_access(const CacheBlock &block, std::string &viticm_hex, Mode mode
             blocks_[empty_index].dirty = true;
             set_dirty = true;
         }
-
-    // } else if (-1 != dirty_index()) { // have dirty index
-    //     victim_dirty = true;
-    //     int ditry_index = dirty_index();
-    //     set_row_unset_column(ditry_index);
-
-    //     // write to child
-    //     viticm_hex = blocks_[ditry_index].address_hex;
-    //     // replace
-    //     blocks_[ditry_index] = block;
-
-    //     if (mode == WRITE) {
-    //         blocks_[ditry_index].dirty = true;
-    //         set_dirty = true;
-    //     }
 
     } else { // full
     
@@ -103,7 +78,7 @@ bool Set::lru_access(const CacheBlock &block, std::string &viticm_hex, Mode mode
 }
 
 // return hit, if hit return true, if miss return false
-bool Set::fifo_access(const CacheBlock &block, std::string &viticm_hex, Mode mode, bool &set_dirty, bool &victim_dirty) {
+bool Set::fifo_access(const CacheBlock &block, std::string &viticm_hex, Mode mode, bool &set_dirty, bool &victim_dirty, int &writeback_memory) {
     // for debug
     set_dirty = false;
     victim_dirty = false;
@@ -116,6 +91,9 @@ bool Set::fifo_access(const CacheBlock &block, std::string &viticm_hex, Mode mod
             blocks_[hit_index].dirty = true;
             set_dirty = true;
         } else if (mode == INVALIDATE) {
+            if (blocks_[hit_index].dirty) {
+                ++writeback_memory; // L1 block to be invalidated is dirty, write to main memory directly.
+            }
             blocks_[hit_index].valid = false;
         }
         return true;
@@ -164,15 +142,6 @@ int Set::lru_hit_index(const CacheBlock &block) {
 int Set::lru_empty_index() {
     for (int i = 0; i < associativity_; i++) {
         if (!blocks_[i].valid) {
-            return i;
-        }
-    }
-    return -1;
-}
-
-int Set::dirty_index() {
-    for (int i = 0; i < associativity_; i++) {
-        if (blocks_[i].valid && blocks_[i].dirty) {
             return i;
         }
     }

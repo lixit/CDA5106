@@ -30,6 +30,18 @@ void Cache::set_parent(std::shared_ptr<Cache> parent) {
     parent_ = parent;
 }
 
+std::shared_ptr<Cache> Cache::get_child() {
+    return child_;
+}
+
+std::shared_ptr<Cache> Cache::get_parent() {
+    return parent_;
+}
+
+int Cache::get_writeback_to_memory() {
+    return writeback_to_memory_;
+}
+
 void Cache::read(const std::string &address_hex) {
     access(address_hex, READ);
 }
@@ -41,7 +53,6 @@ void Cache::write(const std::string &address_hex) {
 void Cache::invalidate(const std::string &address_hex) {
     access(address_hex, INVALIDATE);
 }
-
 
 void Cache::access(const std::string &address_hex, Mode mode) {
     ++count_;
@@ -83,23 +94,12 @@ void Cache::access(const std::string &address_hex, Mode mode) {
     current_set_index_ = index;
     current_victim_dirty_ = false;
 
-    // 1. if hit, don't do anything
-    // 2. if miss
-        // 2.1 if have empty slot
-            // 2.1.1 if non inclusive, don't do anything
-            // 2.1.2 if inclusive, write to child
-        // 2.2 if no empty slot
-            // 2.2.1 if have dirty slot, write back
-                // 2.2.1.1 if non inclusive, don't do anything
-                // 2.2.1.2 if inclusive, write to child
-            // 2.2.2 if no dirty slot, replace one
-                // same as 2.2.1
     std::string victim_address;
     bool hitted;
     if (replacement_ == LRU) {
-        hitted = sets_[index].lru_access(block, victim_address, mode, current_set_dirty_, current_victim_dirty_);
+        hitted = sets_[index].lru_access(block, victim_address, mode, current_set_dirty_, current_victim_dirty_, writeback_to_memory_);
     } else if (replacement_ == FIFO) {
-        hitted = sets_[index].fifo_access(block, victim_address, mode, current_set_dirty_, current_victim_dirty_);
+        hitted = sets_[index].fifo_access(block, victim_address, mode, current_set_dirty_, current_victim_dirty_, writeback_to_memory_);
     } else {
         exit(-1);
     }
@@ -140,35 +140,6 @@ void Cache::access(const std::string &address_hex, Mode mode) {
 
 }
 
-/*
-The only situa:on where CACHE must interact with the next level
-below it (either another CACHE or main memory) is when the read or write request misses in
-CACHE. If not miss, update the block and make it dirty.
-*/
-
-/*
-CACHE should use the WBWA (write-back + write-allocate) write policy.
-oWrite-allocate: A write that misses in CACHE will cause a block to be allocated in CACHE.
-Therefore, both write misses and read misses cause blocks to be allocated in CACHE.
-oWrite-back: A write updates the corresponding block in CACHE, making the block dirty. It
-does not update the next level in the memory hierarchy (next level of cache or memory). If
-a dirty block is evicted from CACHE, a writeback (i.e., a write of the en:re block) will be sent
-to the next level in the memory hierarchy.
-
-*/
-
-
-/*
-1. if read or write missed, allocate a block in cache
-        if have empty slot, allocate one
-        if dirty
-            write 'victim' back to next level
-        if all valid
-            according to replacement policy, replace one
-             
-        read to the next level.
-*/
-
 void Cache::print_cache(const std::string &cache_name) {
     std::cout << "===== " << cache_name << " =====" << std::endl;
     for (int i = 0; i < set_count_; i++) {
@@ -204,6 +175,23 @@ void Cache::print_summary(const std::string &cache_name, char start_char) {
     }
     
     std::cout << char(start_char + 5) << ". " << std::format("{:<27}", "number of " + cache_name + " writebacks:") << writebacks_ << std::endl;
+}
+
+void Cache::print_traffic(const std::string &cache_name, char start_char) {
+    if (cache_name == "L1") {
+        std::cout << start_char << ". " << std::format("{:<27}", "total memory traffic: ") << read_misses_ + write_misses_ + writebacks_ << std::endl;
+    } else if (cache_name == "L2") {
+        int traffic;
+        if (inclusion_ == NON_INCLUSIVE) {
+            traffic = read_misses_ + write_misses_ + writebacks_;
+        } else if (inclusion_ == INCLUSIVE) {
+            traffic = read_misses_ + write_misses_ + writebacks_ + parent_->get_writeback_to_memory();
+        } else {
+            exit(-1);
+        }
+        
+        std::cout << start_char << ". " << std::format("{:<27}", "total memory traffic: ") << traffic << std::endl;
+    }
 }
 
 
@@ -242,8 +230,4 @@ void Cache::print_debug(const std::string &cache_name) {
         std::cout << cache_name << " set dirty" << std::endl;
     }
     std::cout << "----------------------------------------" << std::endl;
-}
-
-std::shared_ptr<Cache> Cache::get_child() {
-    return child_;
 }

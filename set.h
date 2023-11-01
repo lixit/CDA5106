@@ -37,10 +37,10 @@ public:
     Set(int associativity, ReplacementPolicy replace, InclusionPolicy inclusion = NON_INCLUSIVE);
     ~Set() = default;
 
-    bool fifo_access(const CacheBlock &block, std::string &viticm_hex, Mode mode, bool &set_dirty, bool &victim_dirty);
+    bool fifo_access(const CacheBlock &block, std::string &viticm_hex, Mode mode, bool &set_dirty, bool &victim_dirty, int &writeback_memory);
 
     // if missed, return true, and the address of the block to be write to child
-    bool lru_access(const CacheBlock &block, std::string &viticm_hex, Mode mode, bool &set_dirty, bool &victim_dirty);
+    bool lru_access(const CacheBlock &block, std::string &viticm_hex, Mode mode, bool &set_dirty, bool &victim_dirty, int &writeback_memory);
 
     CacheBlock& operator[](int);
 
@@ -49,7 +49,6 @@ private:
     int fifo_empty_index();
 
     int lru_empty_index();
-    int dirty_index();
     int lru_hit_index(const CacheBlock &block);
     void set_row_unset_column(int i);
     int all_0_row();

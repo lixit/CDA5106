@@ -13,16 +13,20 @@ public:
         InclusionPolicy inclusion = NON_INCLUSIVE);
     ~Cache() = default;
 
+    void set_child(std::shared_ptr<Cache> child);
+    void set_parent(std::shared_ptr<Cache> parent);
+    std::shared_ptr<Cache> get_child();
+    std::shared_ptr<Cache> get_parent();
+
     void read(const std::string &address_hex);
     void write(const std::string &address_hex);
     void invalidate(const std::string &address_hex);
 
-    void set_child(std::shared_ptr<Cache> child);
-    void set_parent(std::shared_ptr<Cache> parent);
-    std::shared_ptr<Cache> get_child();
+    int get_writeback_to_memory();
 
     void print_cache(const std::string &cache_name);
     void print_summary(const std::string &cache_name, char start_char);
+    void print_traffic(const std::string &cache_name, char start_char);
     void print_debug(const std::string &cache_name);
 
 private:
@@ -70,6 +74,7 @@ private:
     int writes_ = 0;
     int write_misses_ = 0;
     int writebacks_ = 0;
+    int writeback_to_memory_ = 0; // due to invalidation
 };
 
 

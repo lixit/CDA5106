@@ -142,9 +142,11 @@ int main(int argc, char* argv[]) {
         l1->print_summary("L1", 'a');
         if (l2_size != 0) {
             l1->get_child()->print_summary("L2", 'g');
+            l1->get_child()->print_traffic("L2", 'm');
         } else {
             Cache tmp_l2 = Cache(0, 0, 0, replacement, inclusion);
             tmp_l2.print_summary("L2", 'g');
+            l1->print_traffic("L1", 'm');
         }
     }
 
