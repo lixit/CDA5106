@@ -7,7 +7,7 @@
 Cache::Cache(int size, int block_size, int associativity, ReplacementPolicy replacement, InclusionPolicy inclusion)
     :
     size_(size), block_size_(block_size), associativity_(associativity),
-    set_count_(size / (block_size * associativity)), 
+    set_count_((block_size * associativity) == 0 ? 0 : size / (block_size * associativity)), 
     replacement_(replacement), inclusion_(inclusion) {
 
     if (block_size % 2 != 0) {
@@ -37,6 +37,11 @@ void Cache::read(const std::string &address_hex) {
 void Cache::write(const std::string &address_hex) {
     access(address_hex, WRITE);
 }
+
+void Cache::invalidate(const std::string &address_hex) {
+    access(address_hex, INVALIDATE);
+}
+
 
 void Cache::access(const std::string &address_hex, Mode mode) {
     ++count_;
@@ -118,6 +123,10 @@ void Cache::access(const std::string &address_hex, Mode mode) {
             if (current_victim_dirty_ == true) {
                 ++writebacks_;
             }
+
+            if (inclusion_ == INCLUSIVE && parent_ != nullptr) { // L2 misses, invalidate L1
+                parent_->invalidate(victim_address);
+            }
             
             if (current_victim_dirty_ && child_ != nullptr) {
                 child_->write(victim_address);
@@ -163,7 +172,7 @@ to the next level in the memory hierarchy.
 void Cache::print_cache(const std::string &cache_name) {
     std::cout << "===== " << cache_name << " =====" << std::endl;
     for (int i = 0; i < set_count_; i++) {
-        std::cout <<  std::format("{:<8}", "set") << std::format("{:<8}", std::to_string(i) + ":");
+        std::cout <<  std::format("{:<8}", "Set") << std::format("{:<8}", std::to_string(i) + ":");
         for (int j = 0; j < associativity_; j++) {
             std::string tag = sets_[i][j].tag;
             // append "D" if dirty
@@ -180,7 +189,20 @@ void Cache::print_summary(const std::string &cache_name, char start_char) {
     std::cout << char(start_char + 1) << ". " << std::format("{:<27}", "number of " + cache_name + " read misses:") << read_misses_ << std::endl;
     std::cout << char(start_char + 2) << ". " << std::format("{:<27}", "number of " + cache_name + " writes:") << writes_ << std::endl;
     std::cout << char(start_char + 3) << ". " << std::format("{:<27}", "number of " + cache_name + " write misses:") << write_misses_ << std::endl;
-    std::cout << char(start_char + 4) << ". " << std::format("{:<27}", cache_name + " miss rate:") << std::format("{:.6f}", (read_misses_ + write_misses_) / (double)(reads_ + writes_)) << std::endl;
+    double miss_rate;
+    if (reads_ + writes_ == 0) {
+        miss_rate = 0;
+        std::cout << char(start_char + 4) << ". " << std::format("{:<27}", cache_name + " miss rate:") << std::format("{:.0f}", miss_rate) << std::endl;
+    } else {
+        if ((cache_name == "L1")) {
+           miss_rate = (read_misses_ + write_misses_) / (double)(reads_ + writes_); 
+        } else if (cache_name == "L2")
+        {
+            miss_rate = read_misses_ / (double)reads_;
+        }
+        std::cout << char(start_char + 4) << ". " << std::format("{:<27}", cache_name + " miss rate:") << std::format("{:.6f}", miss_rate) << std::endl;
+    }
+    
     std::cout << char(start_char + 5) << ". " << std::format("{:<27}", "number of " + cache_name + " writebacks:") << writebacks_ << std::endl;
 }
 

@@ -15,6 +15,7 @@ public:
 
     void read(const std::string &address_hex);
     void write(const std::string &address_hex);
+    void invalidate(const std::string &address_hex);
 
     void set_child(std::shared_ptr<Cache> child);
     void set_parent(std::shared_ptr<Cache> parent);

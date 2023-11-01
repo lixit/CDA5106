@@ -18,7 +18,8 @@ enum InclusionPolicy {
 
 enum Mode {
     READ,
-    WRITE
+    WRITE,
+    INVALIDATE
 };
 
 struct CacheBlock {

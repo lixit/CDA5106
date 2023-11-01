@@ -102,10 +102,11 @@ int main(int argc, char* argv[]) {
         }
 
         // Create the cache hierarchy
-        Cache l1 = Cache(l1_size, block_size, l1_assoc, replacement, inclusion);
+        auto l1 = std::make_shared<Cache>(l1_size, block_size, l1_assoc, replacement, inclusion);
         if (l2_size != 0) {
             auto l2 = std::make_shared<Cache>(l2_size, block_size, l2_assoc, replacement, inclusion);
-            l1.set_child(l2);
+            l1->set_child(l2);
+            l2->set_parent(l1);
         }
 
         // Read the trace file, and start the simulation
@@ -124,21 +125,27 @@ int main(int argc, char* argv[]) {
             // std::cout << operation << " " << std::stoi(address, nullptr, 16) << std::endl;
 
             if (operation == 'r') {
-                l1.read(address);
+                l1->read(address);
             } else if (operation == 'w') {
-                l1.write(address);
+                l1->write(address);
             } else {
                 std::cerr << "Invalid operation!" << std::endl;
                 exit(1);
             }
         }
-        l1.print_cache("L1 contents");
+        l1->print_cache("L1 contents");
         if (l2_size != 0) {
-            l1.get_child()->print_cache("L2 contents");
+            l1->get_child()->print_cache("L2 contents");
         }
 
         std::cout << "===== Simulation results (raw) =====" << std::endl;
-        l1.print_summary("L1", 'a');
+        l1->print_summary("L1", 'a');
+        if (l2_size != 0) {
+            l1->get_child()->print_summary("L2", 'g');
+        } else {
+            Cache tmp_l2 = Cache(0, 0, 0, replacement, inclusion);
+            tmp_l2.print_summary("L2", 'g');
+        }
     }
 
 }
