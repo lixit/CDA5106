@@ -4,6 +4,9 @@
 #include <fstream>
 #include <sstream>
 #include "cache.h"
+#include <filesystem>
+
+namespace fs = std::filesystem;
 
 namespace {
 
@@ -78,7 +81,7 @@ int main(int argc, char* argv[]) {
             exit(1);
         }
         std::cout << std::format("{:<23}", "INCLUSION PROPERTY:") << inclusion_print << std::endl;
-        std::cout << std::format("{:<23}", "trace_file:") << trace_file << std::endl;
+        std::cout << std::format("{:<23}", "trace_file:") << fs::path(trace_file).filename().string() << std::endl;
 
         ReplacementPolicy replacement;
         if (replacement_policy == "0") {
