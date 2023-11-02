@@ -15,8 +15,8 @@ Cache::Cache(int size, int block_size, int associativity, ReplacementPolicy repl
         exit(1);
     }
     
-    if (set_count_ % 2 != 0) {
-        std::cerr << "set_count must be power of 2" << std::endl;
+    if (set_count_ % 2 != 0 && set_count_ != 1) {
+        std::cerr << std::format("set_count({}) must be power of 2", set_count_) <<  std::endl;
         exit(1);
     }
 
