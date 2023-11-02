@@ -114,6 +114,10 @@ int main(int argc, char* argv[]) {
 
         // Read the trace file, and start the simulation
         std::ifstream infile(trace_file);
+        if (!infile.is_open()) {
+            std::cerr << "Invalid trace file!" << std::endl;
+            exit(1);
+        }
         std::string line;
         while (std::getline(infile, line)) {
             std::istringstream iss(line);
