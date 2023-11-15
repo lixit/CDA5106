@@ -15,7 +15,7 @@ SIM_OBJ = main.o
 
 # default rule
 
-all: sim_cache
+all: clean sim_cache
 	@echo "my work is done here..."
 
 
