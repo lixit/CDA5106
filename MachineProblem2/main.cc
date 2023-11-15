@@ -6,6 +6,7 @@
 #include <sstream>
 #include "smith.h"
 #include "gshare.h"
+#include "hybrid.h"
 
 namespace {
 
@@ -68,7 +69,7 @@ int main(int argc, char *argv[]) {
                 exit(1);
                 break;
             }
-            smith_predictor.update(ground_truth == "t");
+            smith_predictor.predict(ground_truth == "t");
         }
 
         smith_predictor.print_summary();
@@ -130,11 +131,39 @@ int main(int argc, char *argv[]) {
 
 
     } else if (predictor == "hybrid") {
+        // the number of PC bits used to index the chooser table
         int k = std::stoi(argv[optind + 1]);
+
+        // same as gshare
         int pc_bits = std::stoi(argv[optind + 2]);
         int history_bits = std::stoi(argv[optind + 3]);
+
+        //the number of PC bits used to index the bimodal table.
         int m2 = std::stoi(argv[optind + 4]);
+
         std::string tracefile(argv[optind + 5]);
+        std::ifstream infile(tracefile);
+        if (!infile.is_open()) {
+            std::cerr << "Invalid trace file!" << std::endl;
+            exit(1);
+        }
+        Hybrid hybrid(k, pc_bits, history_bits, m2);
+
+        std::string line;
+        while (std::getline(infile, line)) {
+            std::istringstream iss(line);
+            std::string address;
+            std::string ground_truth;
+            if (!(iss >> address >> ground_truth)) { 
+                std::cerr << "Invalid trace file!" << std::endl;
+                exit(1);
+                break;
+            }
+            hybrid.predict(address, ground_truth == "t");
+        }
+
+        hybrid.print_summary();
+
     } else {
         std::cerr << "Invalid predictor type!" << std::endl;
         usage(argv[0]);
