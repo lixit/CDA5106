@@ -7,15 +7,9 @@
 class Hybrid {
 public:
     Hybrid(int k, int m1, int n, int m2) 
-        : k_(k), m1_(m1), n_(n), m2_(m2), max_n_((1 << n) - 1), chooser_table_(1 << k, 1),
-         gshare_(m1, n), bimodal_(m2, 0), predictions_(0), mispredictions_(0) {   
-
-        if (n > m1) {
-            std::cerr << "n must <= m1!" << std::endl;
-            exit(1);
-        }
-
-            
+        : k_(k), chooser_table_(1 << k, 1), gshare_(m1, n), bimodal_(m2, 0), predictions_(0), mispredictions_(0) {
+        // do nothing 
+        ;
     }
 
     void predict(const std::string &address, bool taken) {
@@ -77,13 +71,6 @@ public:
 private:
     int k_;
 
-    int m1_;
-    int n_;
-
-    int m2_;
-
-    int max_n_;
-    
     // using a chooser table of 2^k 2-bit counters. All counters are initialized to 01.
     std::vector<int> chooser_table_;
 
