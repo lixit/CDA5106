@@ -1,6 +1,7 @@
 CC = g++
-OPT = -g
-OPT = -std=c++20
+# include debug info when debug
+# OPT = -g
+OPT = -std=c++20 -O3
 WARN = -Wall
 CFLAGS = $(OPT) $(WARN) $(INC) $(LIB)
 

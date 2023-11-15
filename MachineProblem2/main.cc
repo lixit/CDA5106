@@ -22,12 +22,15 @@ void usage(const std::string& program_name) {
 
 
 int main(int argc, char *argv[]) {
-
-    std::cout << "COMMAND" << std::endl;
+    
+    std::stringstream ss;
+    ss << "COMMAND" << std::endl;
     for (int i = 0; i < argc; ++i) {
-        std::cout << argv[i] << " ";
+        ss << argv[i] << " ";
     }
-    std::cout << std::endl;
+    ss.seekp(-1, std::ios_base::end);
+    ss << std::endl;
+    std::cout << ss.str();
     
     int opt;
     while ((opt = getopt(argc, argv, "h")) != -1) {

@@ -7,29 +7,9 @@
 class SmithPredictor {
 public:
     SmithPredictor(int counter_bits) 
-        : counter_bits_(counter_bits), content_(0), max_value_((1 << counter_bits) - 1),
+        : counter_bits_(counter_bits), content_((1 << counter_bits_) / 2), max_value_((1 << counter_bits) - 1),
         predictions_(0), mispredictions_(0) 
-    {
-        switch (counter_bits_)
-        {
-        case 1:
-            content_ = 1;
-            break;
-        case 2:
-            content_ = 2;
-            break;
-        case 3:
-            content_ = 4;
-            break;
-        case 4:
-            content_ = 8;
-            break;
-        default:
-            std::cerr << "Invalid counter bits!" << std::endl;
-            exit(1);
-            break;
-        }
-        
+    {   
     }
 
     // if predict wrong, return false
